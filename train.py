@@ -7,14 +7,14 @@ import util
 from model import MultiLabelEfficientNet
 import matplotlib.pyplot as plt
 import torch
-
+from torch.optim.lr_scheduler import ReduceLROnPlateau
 
 def main():
     device = "cuda:0" if torch.cuda.is_available() else "cpu"    
 
     parser = argparse.ArgumentParser()
-    parser.add_argument('--image_path', type=str, default="./data/dirty_mnist/")
-    parser.add_argument('--list_path', type=str, default="./data/dirty_mnist_answer.csv")
+    parser.add_argument('--image_path', type=str, default="./data/dirty_mnist_2nd/")
+    parser.add_argument('--list_path', type=str, default="./data/dirty_mnist_2nd_answer.csv")
     parser.add_argument('--dataset_ratio', type=float, default=0.7)
 
     parser.add_argument('--model', type=str, default='efficientnet-b6')
@@ -65,12 +65,9 @@ def main():
     model = MultiLabelEfficientNet(args.model)
     print('=' * 50)
 
-    date_time = datetime.now().strftime("%m%d%H%M")
-    SAVE_DIR = os.path.join('./save', date_time)
-    Path(SAVE_DIR).mkdir(parents=True, exist_ok=True)
-
     optimizer = torch.optim.Adam(model.parameters(), args.lr)
     criterion = torch.nn.MultiLabelSoftMarginLoss()
+    scheduler = ReduceLROnPlateau(optimizer, mode='min',patience = 2,factor = 0.5,threshold = 0.001)
 
     train_error = []
     valid_error = []
@@ -80,6 +77,12 @@ def main():
 
     patient = 0
     patient_limit = args.patient
+
+    date_time = datetime.now().strftime("%m%d%H%M")
+    SAVE_DIR = os.path.join('./save', date_time)
+    Path(SAVE_DIR).mkdir(parents=True, exist_ok=True)
+
+    print('[info msg] training start !!\n')
 
     startTime = datetime.now()
     for epoch in range(args.epochs):        
@@ -124,17 +127,17 @@ def main():
     valid_error = np.array(valid_error)
     best_loss_pos = np.argmin(valid_error)
     
-    print('[info msg] {} training is done\n')
-    print("Time taken:", elapsed_time)
-    print("best loss is {} at epoch : {}".format(best_loss, best_loss_pos))
-
-    torch.save(model.state_dict(), os.path.join(SAVE_DIR, 'model_best.pth.tar'))
-    model.load_state_dict(torch.load(os.path.join(SAVE_DIR, 'model_best.pth.tar')))
+    print('[info msg] training is done\n')
+    print("Time taken: {}\n", elapsed_time)
+    print("best loss is {} at epoch : {}\n".format(best_loss, best_loss_pos))
 
     print('[info msg] {} model weight and log is save to {}\n'.format(SAVE_DIR))
 
     with open(os.path.join(SAVE_DIR, 'log.txt'), 'w') as f:
-        f.write('model : {}\n'.format(args.model))
+        f.write('hyperparameters:\n')
+        for key, value in vars(args).items():
+            f.write('{} : {}\n'.format(key, value))            
+
         f.write('time taken : {}\n'.format(str(elapsed_time)))
         f.write('best_train_loss at {} epoch : {}\n'.format(np.argmin(train_error), np.min(train_error)))
         f.write('best_valid_loss at {} epoch : {}\n'.format(np.argmin(train_error), np.min(valid_error)))

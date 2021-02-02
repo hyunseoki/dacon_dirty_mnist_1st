@@ -1,4 +1,3 @@
-from torchinfo import summary
 from efficientnet_pytorch import EfficientNet
 import torch.nn as nn
 
@@ -36,6 +35,6 @@ class MultiLabelEfficientNet(nn.Module):
 
 if __name__ == '__main__':
     model = MultiLabelEfficientNet()
-    print(summary(model, input_size=(1, 3, 256, 256), verbose=0))
+    # print(summary(model, input_size=(1, 3, 256, 256), verbose=0))
     # model.available_model()
 
