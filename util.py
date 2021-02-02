@@ -115,12 +115,12 @@ def train(train_loader, model, loss_func, device, optimizer, scheduler=None):
             optimizer.step()
 
     if scheduler:
-        scheduler.step()
+        scheduler.step(epoch_loss)
 
     return epoch_loss
 
 
-def validate(valid_loader, model, loss_func, device):
+def validate(valid_loader, model, loss_func, device, scheduler=None):
     n = 0
     running_loss = 0.0   
     epoch_loss = 0.0 
@@ -145,5 +145,8 @@ def validate(valid_loader, model, loss_func, device):
 
             log = 'loss - {:.6f}'.format(epoch_loss)
             iterator.set_postfix_str(log)
+
+    if(scheduler):
+        scheduler.step(epoch_loss)
 
     return epoch_loss

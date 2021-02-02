@@ -21,7 +21,7 @@ def main():
     parser.add_argument('--epochs', type=int, default=2000)
     parser.add_argument('--batch_size', type=int, default=32)
     parser.add_argument('--lr', type=float, default=1e-4)
-    parser.add_argument('--patient', type=int, default=15)
+    parser.add_argument('--patient', type=int, default=5)
 
     parser.add_argument('--device', type=str, default=device)
     parser.add_argument('--resume', type=str, default=None)
@@ -67,7 +67,13 @@ def main():
 
     optimizer = torch.optim.Adam(model.parameters(), args.lr)
     criterion = torch.nn.MultiLabelSoftMarginLoss()
-    scheduler = ReduceLROnPlateau(optimizer, mode='min',patience = 2,factor = 0.5,threshold = 0.001)
+    scheduler = ReduceLROnPlateau(
+        optimizer=optimizer,
+        mode='min',
+        patience=3,
+        factor=0.5,
+        verbose=True
+        )
 
     train_error = []
     valid_error = []
@@ -93,7 +99,6 @@ def main():
             loss_func=criterion,
             device=args.device,
             optimizer=optimizer,
-            scheduler=None,
             )
         train_error.append(train_loss)
 
@@ -102,6 +107,7 @@ def main():
             model=model,
             loss_func=criterion,
             device=args.device,
+            scheduler=scheduler,
             )
         valid_error.append(valid_loss)        
 
@@ -111,7 +117,6 @@ def main():
             patient = 0
             best_loss = valid_loss
             torch.save(model.state_dict(), os.path.join(SAVE_DIR, 'model_best.pth.tar'))
-
             print('MODEL SAVED!')
             
         else:
