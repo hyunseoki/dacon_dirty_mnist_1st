@@ -9,6 +9,7 @@ import matplotlib.pyplot as plt
 import torch
 from torch.optim.lr_scheduler import ReduceLROnPlateau
 
+
 def main():
     device = "cuda:0" if torch.cuda.is_available() else "cpu"    
 
@@ -18,8 +19,8 @@ def main():
     parser.add_argument('--dataset_ratio', type=float, default=0.7)
 
     parser.add_argument('--model', type=str, default='efficientnet-b6')
-    parser.add_argument('--epochs', type=int, default=2000)
-    parser.add_argument('--batch_size', type=int, default=32)
+    parser.add_argument('--epochs', type=int, default=0)
+    parser.add_argument('--batch_size', type=int, default=16)
     parser.add_argument('--lr', type=float, default=1e-4)
     parser.add_argument('--patient', type=int, default=5)
 
@@ -126,24 +127,33 @@ def main():
                 print("[Info message] Early stopper is activated")
                 break
 
+    train_error.append(0)
+    train_error.append(2)
+    train_error.append(1)
+
+    valid_error.append(10)
+    valid_error.append(5)
+    valid_error.append(3)
+
     elapsed_time = datetime.now() - startTime
 
     train_error = np.array(train_error)
     valid_error = np.array(valid_error)
     best_loss_pos = np.argmin(valid_error)
     
+    print('=' * 50)
     print('[info msg] training is done\n')
-    print("Time taken: {}\n", elapsed_time)
-    print("best loss is {} at epoch : {}\n".format(best_loss, best_loss_pos))
+    print("Time taken: {}".format(elapsed_time))
+    print("best loss is {} at epoch : {}".format(best_loss, best_loss_pos))
 
-    print('[info msg] {} model weight and log is save to {}\n'.format(SAVE_DIR))
+    print('=' * 50)
+    print('[info msg] {} model weight and log is save to {}\n'.format(args.model, SAVE_DIR))
 
     with open(os.path.join(SAVE_DIR, 'log.txt'), 'w') as f:
-        f.write('hyperparameters:\n')
         for key, value in vars(args).items():
             f.write('{} : {}\n'.format(key, value))            
 
-        f.write('time taken : {}\n'.format(str(elapsed_time)))
+        f.write('time taken : {}\n\n'.format(str(elapsed_time)))
         f.write('best_train_loss at {} epoch : {}\n'.format(np.argmin(train_error), np.min(train_error)))
         f.write('best_valid_loss at {} epoch : {}\n'.format(np.argmin(train_error), np.min(valid_error)))
 
