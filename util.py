@@ -32,12 +32,12 @@ class DatasetMNIST(torch.utils.data.Dataset):
         image_fn = self.image_folder +\
             str(self.label.iloc[index,0]).zfill(5) + '.png'
                                               
-        image = Image.open(image_fn).convert('RGB')
+        image = Image.open(image_fn).convert('L') 
 
         label = self.label.iloc[index,1:].values.astype('float')
 
         if self.transforms is not None:
-            image = self.transforms(image)
+            image = self.transforms(image)/ 255.0
 
         return image, label
 
@@ -52,18 +52,18 @@ mnist_transforms = {
         transforms.RandomHorizontalFlip(p=0.5),
         transforms.RandomVerticalFlip(p=0.5),
         transforms.ToTensor(),
-        transforms.Normalize(mnist_transforms_value['mean'],
-                             mnist_transforms_value['std']),
+        # transforms.Normalize(mnist_transforms_value['mean'],
+        #                      mnist_transforms_value['std']),
         ]),
     'valid' : transforms.Compose([
         transforms.ToTensor(),
-        transforms.Normalize(mnist_transforms_value['mean'],
-                             mnist_transforms_value['std']),
+        # transforms.Normalize(mnist_transforms_value['mean'],
+        #                      mnist_transforms_value['std']),
         ]),
     'test' : transforms.Compose([
         transforms.ToTensor(),
-        transforms.Normalize(mnist_transforms_value['mean'],
-                             mnist_transforms_value['std']),
+        # transforms.Normalize(mnist_transforms_value['mean'],
+        #                      mnist_transforms_value['std']),
         ]),
 }
 

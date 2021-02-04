@@ -18,11 +18,11 @@ def main():
     parser.add_argument('--list_path', type=str, default="./data/dirty_mnist_2nd_answer.csv")
     parser.add_argument('--dataset_ratio', type=float, default=0.7)
 
-    parser.add_argument('--model', type=str, default='efficientnet-b6')
-    parser.add_argument('--epochs', type=int, default=0)
+    parser.add_argument('--model', type=str, default='efficientnet-b7')
+    parser.add_argument('--epochs', type=int, default=2000)
     parser.add_argument('--batch_size', type=int, default=16)
     parser.add_argument('--lr', type=float, default=1e-4)
-    parser.add_argument('--patient', type=int, default=5)
+    parser.add_argument('--patient', type=int, default=8)
 
     parser.add_argument('--device', type=str, default=device)
     parser.add_argument('--resume', type=str, default=None)
@@ -37,6 +37,8 @@ def main():
     
     assert os.path.isdir(args.image_path), 'wrong path'
     assert os.path.isfile(args.list_path), 'wrong path'
+    if (args.resume):
+        assert os.path.isfile(args.resume), 'wrong path'
 
     util.seed_everything(777)
 
@@ -71,7 +73,7 @@ def main():
     scheduler = ReduceLROnPlateau(
         optimizer=optimizer,
         mode='min',
-        patience=3,
+        patience=2,
         factor=0.5,
         verbose=True
         )
@@ -88,6 +90,12 @@ def main():
     date_time = datetime.now().strftime("%m%d%H%M")
     SAVE_DIR = os.path.join('./save', date_time)
     Path(SAVE_DIR).mkdir(parents=True, exist_ok=True)
+
+    if(args.resume):
+        model.load_state_dict(torch.load(args.resume))
+        print('[info msg] pre-trained weight is loaded !!\n')        
+        print(args.resume)
+        print('=' * 50)
 
     print('[info msg] training start !!\n')
 
@@ -126,14 +134,6 @@ def main():
                 print('=======' * 10)
                 print("[Info message] Early stopper is activated")
                 break
-
-    train_error.append(0)
-    train_error.append(2)
-    train_error.append(1)
-
-    valid_error.append(10)
-    valid_error.append(5)
-    valid_error.append(3)
 
     elapsed_time = datetime.now() - startTime
 
