@@ -7,3 +7,4 @@ opencv-python
 efficientnet_pytorch
 easydict
 jupyter
+tqdm
