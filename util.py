@@ -7,6 +7,7 @@ import pandas as pd
 from PIL import Image
 import tqdm
 from torchvision import transforms
+import cv2
 
 
 def seed_everything(seed):
@@ -24,7 +25,21 @@ class DatasetMNIST(torch.utils.data.Dataset):
         self.image_folder = image_folder   
         self.label = pd.read_csv(label)
         self.transforms = transforms
-        
+
+    def __clahe__(self, img, clip_limit=4.0, tile_grid_size=(3, 3)):
+        # if img.dtype != np.uint8:
+        #     raise TypeError("ahe supports only uint8 inputs")
+
+        clahe = cv2.createCLAHE(clipLimit=clip_limit, tileGridSize=tile_grid_size)
+        if len(img.shape) == 2:
+            img = clahe.apply(img)
+        else:
+            img = cv2.cvtColor(img, cv2.COLOR_BGR2LAB)
+            img[:, :, 0] = clahe.apply(img[:, :, 0])
+            img = cv2.cvtColor(img, cv2.COLOR_LAB2BGR)
+
+        return img    
+
     def __len__(self):
         return len(self.label)
     
@@ -32,7 +47,9 @@ class DatasetMNIST(torch.utils.data.Dataset):
         image_fn = self.image_folder +\
             str(self.label.iloc[index,0]).zfill(5) + '.png'
                                               
-        image = Image.open(image_fn).convert('L') 
+        image = Image.open(image_fn).convert('RGB')
+        # image = np.array(image)
+        # image = self.__clahe__(image)
 
         label = self.label.iloc[index,1:].values.astype('float')
 
@@ -41,7 +58,7 @@ class DatasetMNIST(torch.utils.data.Dataset):
 
         return image, label
 
-
+# http://incredible.ai/pytorch/2020/04/25/Pytorch-Image-Augmentation/#random-affine
 mnist_transforms_value ={
     'mean' : [0.485, 0.456, 0.406],
     'std' : [0.229, 0.224, 0.225],
@@ -49,21 +66,23 @@ mnist_transforms_value ={
 
 mnist_transforms = {
     'train' : transforms.Compose([
-        transforms.RandomHorizontalFlip(p=0.5),
-        transforms.RandomVerticalFlip(p=0.5),
+        # transforms.RandomHorizontalFlip(p=0.5),
+        # transforms.RandomVerticalFlip(p=0.5),
+        transforms.ColorJitter(brightness=(0.2, 3), contrast=(0.2, 3), saturation=(0.2, 3), hue=(-0.5, 0.5)),
+        transforms.RandomPerspective(),   
         transforms.ToTensor(),
-        # transforms.Normalize(mnist_transforms_value['mean'],
-        #                      mnist_transforms_value['std']),
+        transforms.Normalize(mnist_transforms_value['mean'],
+                             mnist_transforms_value['std']),
         ]),
     'valid' : transforms.Compose([
         transforms.ToTensor(),
-        # transforms.Normalize(mnist_transforms_value['mean'],
-        #                      mnist_transforms_value['std']),
+        transforms.Normalize(mnist_transforms_value['mean'],
+                             mnist_transforms_value['std']),
         ]),
     'test' : transforms.Compose([
         transforms.ToTensor(),
-        # transforms.Normalize(mnist_transforms_value['mean'],
-        #                      mnist_transforms_value['std']),
+        transforms.Normalize(mnist_transforms_value['mean'],
+                             mnist_transforms_value['std']),
         ]),
 }
 
