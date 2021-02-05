@@ -11,9 +11,9 @@ class MultiLabelEfficientNet(nn.Module):
         super(MultiLabelEfficientNet, self).__init__()
         self.model = EfficientNet.from_pretrained(ver)
         # self.model = EfficientNet.from_name('efficientnet-b0')
-        self.conv2d = nn.Sequential(
-            nn.Conv2d(1, 3, 3, stride=1),
-        )
+        # self.conv2d = nn.Sequential(
+        #     nn.Conv2d(1, 3, 3, stride=1),
+        # )
         self.fc = nn.Sequential(
             nn.Linear(2560, 512),
             nn.BatchNorm1d(512),
@@ -23,7 +23,7 @@ class MultiLabelEfficientNet(nn.Module):
         )
 
     def forward(self, x):
-        x = self.conv2d(x)
+        # x = self.conv2d(x)
         x = self.model.extract_features(x)
         x = self.model._avg_pooling(x)
         x = x.flatten(start_dim=1)
@@ -39,8 +39,8 @@ class MultiLabelEfficientNet(nn.Module):
 
 if __name__ == '__main__':
     model = MultiLabelEfficientNet('efficientnet-b7')
-    input = torch.rand(5, 1, 256, 256)
+    input = torch.rand(5, 3, 256, 256)
     print(model(input).shape)
-    # print(summary(model, input_size=(1, 3, 256, 256), verbose=0))
+
     # model.available_model()
 
