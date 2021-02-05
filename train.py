@@ -89,7 +89,6 @@ def main():
 
     date_time = datetime.now().strftime("%m%d%H%M")
     SAVE_DIR = os.path.join('./save', date_time)
-    Path(SAVE_DIR).mkdir(parents=True, exist_ok=True)
 
     if(args.resume):
         model.load_state_dict(torch.load(args.resume))
@@ -125,6 +124,8 @@ def main():
         if is_best:
             patient = 0
             best_loss = valid_loss
+            
+            Path(SAVE_DIR).mkdir(parents=True, exist_ok=True)
             torch.save(model.state_dict(), os.path.join(SAVE_DIR, 'model_best.pth.tar'))
             print('MODEL SAVED!')
             
