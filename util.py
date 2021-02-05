@@ -7,6 +7,7 @@ import pandas as pd
 from PIL import Image
 import tqdm
 from torchvision import transforms
+from skimage import restoration
 import cv2
 
 
@@ -26,20 +27,6 @@ class DatasetMNIST(torch.utils.data.Dataset):
         self.label = pd.read_csv(label)
         self.transforms = transforms
 
-    def __clahe__(self, img, clip_limit=4.0, tile_grid_size=(3, 3)):
-        # if img.dtype != np.uint8:
-        #     raise TypeError("ahe supports only uint8 inputs")
-
-        clahe = cv2.createCLAHE(clipLimit=clip_limit, tileGridSize=tile_grid_size)
-        if len(img.shape) == 2:
-            img = clahe.apply(img)
-        else:
-            img = cv2.cvtColor(img, cv2.COLOR_BGR2LAB)
-            img[:, :, 0] = clahe.apply(img[:, :, 0])
-            img = cv2.cvtColor(img, cv2.COLOR_LAB2BGR)
-
-        return img    
-
     def __len__(self):
         return len(self.label)
     
@@ -48,13 +35,16 @@ class DatasetMNIST(torch.utils.data.Dataset):
             str(self.label.iloc[index,0]).zfill(5) + '.png'
                                               
         image = Image.open(image_fn).convert('RGB')
-        # image = np.array(image)
-        # image = self.__clahe__(image)
-
+        
+        gray_sample = image.convert('L')
+        f_image = restoration.denoise_tv_bregman(gray_sample, 0.6)
+        _, bin = cv2.threshold((f_image*255).astype('uint8'), 0, 255, cv2.THRESH_BINARY | cv2.THRESH_OTSU)
+        image = cv2.bitwise_and(np.array(image), np.array(image), mask=bin)
+        
         label = self.label.iloc[index,1:].values.astype('float')
 
-        if self.transforms is not None:
-            image = self.transforms(image)/ 255.0
+        if self.transforms:            
+            image = self.transforms(Image.fromarray(image)) /255.0
 
         return image, label
 

@@ -26,6 +26,7 @@ def main():
 
     parser.add_argument('--device', type=str, default=device)
     parser.add_argument('--resume', type=str, default=None)
+    parser.add_argument('--comments', type=str, default=None)
 
     args = parser.parse_args()
 
