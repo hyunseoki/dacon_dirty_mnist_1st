@@ -100,7 +100,7 @@ def train(train_loader, model, loss_func, device, optimizer, scheduler=None):
     running_loss = 0.0
     epoch_loss = 0.0
 
-    model.to(device)
+    # model.to(device)
     model.train()
 
     with tqdm.tqdm(train_loader, total=len(train_loader), desc="Train", file=sys.stdout) as iterator:
@@ -134,7 +134,7 @@ def validate(valid_loader, model, loss_func, device, scheduler=None):
     running_loss = 0.0   
     epoch_loss = 0.0 
 
-    model.to(device)
+    # model.to(device)
     model.eval()
 
     with tqdm.tqdm(valid_loader, total=len(valid_loader), desc="Valid", file=sys.stdout) as iterator:

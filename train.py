@@ -11,14 +11,14 @@ from torch.optim.lr_scheduler import ReduceLROnPlateau
 
 
 def main():
-    device = "cuda:0" if torch.cuda.is_available() else "cpu"    
+    device = "cuda:0" if torch.cuda.is_available() else "cpu"
 
     parser = argparse.ArgumentParser()
     parser.add_argument('--image_path', type=str, default="./data/dirty_mnist_2nd/")
     parser.add_argument('--list_path', type=str, default="./data/dirty_mnist_2nd_answer.csv")
     parser.add_argument('--dataset_ratio', type=float, default=0.7)
 
-    parser.add_argument('--model', type=str, default='efficientnet-b7')
+    parser.add_argument('--model', type=str, default='efficientnet-b0')
     parser.add_argument('--epochs', type=int, default=2000)
     parser.add_argument('--batch_size', type=int, default=16)
     parser.add_argument('--lr', type=float, default=1e-4)
@@ -100,6 +100,12 @@ def main():
     print('[info msg] training start !!\n')
 
     startTime = datetime.now()
+
+    if args.device is 'cuda' and torch.cuda.device_count() > 1 :
+        model = torch.nn.DataParallel(model)
+    
+    model.to(device)
+
     for epoch in range(args.epochs):        
         print('Epoch {}/{}'.format(epoch+1, args.epochs))
         train_loss = util.train(
@@ -155,9 +161,11 @@ def main():
         for key, value in vars(args).items():
             f.write('{} : {}\n'.format(key, value))            
 
-        f.write('time taken : {}\n\n'.format(str(elapsed_time)))
+        f.write('\n')
+        f.write('total ecpochs : {}\n'.format(str(train_error.shape[0])))
+        f.write('time taken : {}\n'.format(str(elapsed_time)))
         f.write('best_train_loss at {} epoch : {}\n'.format(np.argmin(train_error), np.min(train_error)))
-        f.write('best_valid_loss at {} epoch : {}\n'.format(np.argmin(train_error), np.min(valid_error)))
+        f.write('best_valid_loss at {} epoch : {}\n'.format(np.argmin(valid_error), np.min(valid_error)))
 
     plt.plot(train_error, label='train loss')
     plt.plot(valid_error, 'o', label='valid loss')
