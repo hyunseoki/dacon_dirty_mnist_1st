@@ -3,7 +3,6 @@ matplotlib
 torch
 torchvision
 albumentations
-opencv-python
 efficientnet_pytorch
 easydict
 jupyter
