@@ -3,11 +3,9 @@ import sys
 import random
 import numpy as np
 import torch
-import pandas as pd
-from PIL import Image
 import tqdm
-from torchvision import transforms
-from skimage import restoration
+import albumentations
+import albumentations.pytorch
 import cv2
 
 
@@ -17,62 +15,64 @@ def seed_everything(seed):
     np.random.seed(seed)
     torch.manual_seed(seed)
     torch.cuda.manual_seed(seed)
-    torch.backends.cudnn.deterministic = True
-    torch.backends.cudnn.benchmark = False
+    
+    #cudnn 시드 고정 : true, false 
+    #cudnn 시드 랜덤 : false, true
+    # https://www.facebook.com/groups/PyTorchKR/permalink/1010080022465012/
+    # https://hoya012.github.io/blog/reproducible_pytorch/
+    
+    torch.backends.cudnn.deterministic = False
+    torch.backends.cudnn.benchmark = True 
 
 
 class DatasetMNIST(torch.utils.data.Dataset):
-    def __init__(self, image_folder, label, transforms):        
+    def __init__(self, image_folder, label_df, transforms):        
         self.image_folder = image_folder   
-        self.label = pd.read_csv(label)
+        self.label_df = label_df
         self.transforms = transforms
 
     def __len__(self):
-        return len(self.label)
+        return len(self.label_df)
     
     def __getitem__(self, index):        
         image_fn = self.image_folder +\
-            str(self.label.iloc[index,0]).zfill(5) + '.png'
+            str(self.label_df.iloc[index,0]).zfill(5) + '.png'
                                               
-        image = Image.open(image_fn).convert('RGB')
-        
-        gray_sample = image.convert('L')
-        f_image = restoration.denoise_tv_bregman(gray_sample, 0.6)
-        _, bin = cv2.threshold((f_image*255).astype('uint8'), 0, 255, cv2.THRESH_BINARY | cv2.THRESH_OTSU)
-        image = cv2.bitwise_and(np.array(image), np.array(image), mask=bin)
-        
-        label = self.label.iloc[index,1:].values.astype('float')
+        image = cv2.imread(image_fn)
+        # By default OpenCV uses BGR color space for color images,
+        # so we need to convert the image to RGB color space.
+        image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+        label = self.label_df.iloc[index,1:].values.astype('float')
 
         if self.transforms:            
-            image = self.transforms(Image.fromarray(image)) /255.0
+            image = self.transforms(image=image)['image'] / 255.0
 
         return image, label
 
-# http://incredible.ai/pytorch/2020/04/25/Pytorch-Image-Augmentation/#random-affine
+
 mnist_transforms_value ={
     'mean' : [0.485, 0.456, 0.406],
     'std' : [0.229, 0.224, 0.225],
 }
 
 mnist_transforms = {
-    'train' : transforms.Compose([
-        # transforms.RandomHorizontalFlip(p=0.5),
-        # transforms.RandomVerticalFlip(p=0.5),
-        transforms.ColorJitter(brightness=(0.2, 3), contrast=(0.2, 3), saturation=(0.2, 3), hue=(-0.5, 0.5)),
-        transforms.RandomPerspective(),   
-        transforms.ToTensor(),
-        transforms.Normalize(mnist_transforms_value['mean'],
-                             mnist_transforms_value['std']),
+    'train' : albumentations.Compose([
+        albumentations.RandomRotate90(),
+        albumentations.VerticalFlip(),
+        albumentations.RandomBrightnessContrast(), 
+        albumentations.Normalize(mnist_transforms_value['mean'],
+                                mnist_transforms_value['std']), 
+        albumentations.pytorch.ToTensorV2(),
         ]),
-    'valid' : transforms.Compose([
-        transforms.ToTensor(),
-        transforms.Normalize(mnist_transforms_value['mean'],
-                             mnist_transforms_value['std']),
+    'valid' : albumentations.Compose([        
+        albumentations.Normalize(mnist_transforms_value['mean'],
+                                mnist_transforms_value['std']),
+        albumentations.pytorch.ToTensorV2(),
         ]),
-    'test' : transforms.Compose([
-        transforms.ToTensor(),
-        transforms.Normalize(mnist_transforms_value['mean'],
-                             mnist_transforms_value['std']),
+    'test' : albumentations.Compose([        
+        albumentations.Normalize(mnist_transforms_value['mean'],
+                                mnist_transforms_value['std']),
+        albumentations.pytorch.ToTensorV2(),
         ]),
 }
 

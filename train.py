@@ -1,13 +1,14 @@
 import os
 import argparse
-import numpy as np
+import pandas as pd
 from pathlib import Path
 from datetime import datetime
-import util
-from model import MultiLabelEfficientNet
+import numpy as np
 import matplotlib.pyplot as plt
 import torch
 from torch.optim.lr_scheduler import ReduceLROnPlateau
+import util
+from model import MultiLabelEfficientNet
 
 
 def main():
@@ -15,7 +16,7 @@ def main():
 
     parser = argparse.ArgumentParser()
     parser.add_argument('--image_path', type=str, default="./data/dirty_mnist_2nd/")
-    parser.add_argument('--list_path', type=str, default="./data/dirty_mnist_2nd_answer.csv")
+    parser.add_argument('--label_path', type=str, default="./data/dirty_mnist_2nd_answer.csv")
     parser.add_argument('--dataset_ratio', type=float, default=0.7)
 
     parser.add_argument('--model', type=str, default='efficientnet-b0')
@@ -37,21 +38,27 @@ def main():
     print('=' * 50)
     
     assert os.path.isdir(args.image_path), 'wrong path'
-    assert os.path.isfile(args.list_path), 'wrong path'
+    assert os.path.isfile(args.label_path), 'wrong path'
     if (args.resume):
         assert os.path.isfile(args.resume), 'wrong path'
 
     util.seed_everything(777)
 
-    data_set = util.DatasetMNIST(
+    data_set = pd.read_csv(args.label_path)
+    train_set_nb = int(len(data_set) * args.dataset_ratio)
+    # valid_set_nb = len(data_set) - train_set_nb
+
+    train_set = util.DatasetMNIST(
         image_folder=args.image_path,
-        label=args.list_path,
+        label_df=data_set[:train_set_nb],
         transforms=util.mnist_transforms['train']
     )
-
-    train_set_nb = int(len(data_set) * args.dataset_ratio)
-    valid_set_nb = len(data_set) - train_set_nb
-    train_set, val_set = torch.utils.data.random_split(data_set, [train_set_nb, valid_set_nb])
+    
+    valid_set = util.DatasetMNIST(
+        image_folder=args.image_path,
+        label_df=data_set[train_set_nb:],
+        transforms=util.mnist_transforms['valid']
+    )
 
     train_data_loader = torch.utils.data.DataLoader(
             train_set,
@@ -60,7 +67,7 @@ def main():
         )
 
     valid_data_loader = torch.utils.data.DataLoader(
-            val_set,
+            valid_set,
             batch_size = args.batch_size,
             shuffle = False,
         )
