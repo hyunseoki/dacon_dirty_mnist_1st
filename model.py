@@ -15,7 +15,7 @@ class MultiLabelEfficientNet(nn.Module):
         #     nn.Conv2d(1, 3, 3, stride=1),
         # )
         self.fc = nn.Sequential(
-            nn.Linear(2560, 512),
+            nn.Linear(1280, 512),
             nn.BatchNorm1d(512),
             nn.Dropout(0.2),
             nn.Linear(512, 256),
@@ -38,7 +38,7 @@ class MultiLabelEfficientNet(nn.Module):
 
 
 if __name__ == '__main__':
-    model = MultiLabelEfficientNet('efficientnet-b7')
+    model = MultiLabelEfficientNet('efficientnet-b0')
     input = torch.rand(5, 3, 256, 256)
     print(model(input).shape)
 
