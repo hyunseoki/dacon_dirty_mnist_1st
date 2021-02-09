@@ -21,8 +21,8 @@ def seed_everything(seed):
     # https://www.facebook.com/groups/PyTorchKR/permalink/1010080022465012/
     # https://hoya012.github.io/blog/reproducible_pytorch/
     
-    torch.backends.cudnn.deterministic = False
-    torch.backends.cudnn.benchmark = True 
+    torch.backends.cudnn.deterministic = True
+    torch.backends.cudnn.benchmark = False 
 
 
 class DatasetMNIST(torch.utils.data.Dataset):
@@ -31,6 +31,18 @@ class DatasetMNIST(torch.utils.data.Dataset):
         self.label_df = label_df
         self.transforms = transforms
 
+    def distance(self, point1,point2):
+        return np.sqrt((point1[0]-point2[0])**2 + (point1[1]-point2[1])**2)
+
+    def gaussianLP(self, D0, imgShape):
+        base = np.zeros(imgShape[:2])
+        rows, cols = imgShape[:2]
+        center = (rows/2,cols/2)
+        for x in range(cols):
+            for y in range(rows):
+                base[y,x] = np.exp(((-self.distance((y,x),center)**2)/(2*(D0**2))))
+        return base
+
     def __len__(self):
         return len(self.label_df)
     
@@ -38,10 +50,21 @@ class DatasetMNIST(torch.utils.data.Dataset):
         image_fn = self.image_folder +\
             str(self.label_df.iloc[index,0]).zfill(5) + '.png'
                                               
-        image = cv2.imread(image_fn)
+        image = cv2.imread(image_fn, cv2.IMREAD_GRAYSCALE)        
         # By default OpenCV uses BGR color space for color images,
         # so we need to convert the image to RGB color space.
-        image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+        # image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+
+        # original = np.fft.fft2(image)
+        # center = np.fft.fftshift(original)
+        # LowPassCenter = center * self.gaussianLP(20, image.shape)
+        # LowPass = np.fft.ifftshift(LowPassCenter)
+        # inverse_LowPass = np.fft.ifft2(LowPass)
+        # image = np.abs(inverse_LowPass)
+
+        image = cv2.bilateralFilter(image, 9, 150, 150)
+        image = image.reshape([256, 256, 1])
+
         label = self.label_df.iloc[index,1:].values.astype('float')
 
         if self.transforms:            
@@ -57,21 +80,20 @@ mnist_transforms_value ={
 
 mnist_transforms = {
     'train' : albumentations.Compose([
-        albumentations.RandomRotate90(),
-        albumentations.VerticalFlip(),
-        albumentations.RandomBrightnessContrast(), 
-        albumentations.Normalize(mnist_transforms_value['mean'],
-                                mnist_transforms_value['std']), 
-        albumentations.pytorch.ToTensorV2(),
+            albumentations.RandomRotate90(),
+            albumentations.VerticalFlip(),            
+            albumentations.OneOf([
+                albumentations.GridDistortion(distort_limit=(-0.3, 0.3), border_mode=cv2.BORDER_CONSTANT),
+                albumentations.ShiftScaleRotate(rotate_limit=15, border_mode=cv2.BORDER_CONSTANT, p=1),        
+                albumentations.ElasticTransform(alpha_affine=10, border_mode=cv2.BORDER_CONSTANT, p=1),
+            ], p=1),    
+            albumentations.Cutout(num_holes=16, max_h_size=15, max_w_size=15, fill_value=0),
+            albumentations.pytorch.ToTensorV2(),
         ]),
     'valid' : albumentations.Compose([        
-        albumentations.Normalize(mnist_transforms_value['mean'],
-                                mnist_transforms_value['std']),
         albumentations.pytorch.ToTensorV2(),
         ]),
     'test' : albumentations.Compose([        
-        albumentations.Normalize(mnist_transforms_value['mean'],
-                                mnist_transforms_value['std']),
         albumentations.pytorch.ToTensorV2(),
         ]),
 }
