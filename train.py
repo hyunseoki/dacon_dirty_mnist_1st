@@ -8,8 +8,7 @@ import matplotlib.pyplot as plt
 import torch
 from torch.optim.lr_scheduler import ReduceLROnPlateau
 import util
-from model import MultiLabelEfficientNet
-
+from efficientnet_pytorch import EfficientNet
 
 def main():
     device = "cuda:0" if torch.cuda.is_available() else "cpu"
@@ -19,7 +18,7 @@ def main():
     parser.add_argument('--label_path', type=str, default="./data/dirty_mnist_2nd_answer.csv")
     parser.add_argument('--dataset_ratio', type=float, default=0.7)
 
-    parser.add_argument('--model', type=str, default='efficientnet-b0')
+    parser.add_argument('--model', type=str, default='efficientnet-b7')
     parser.add_argument('--epochs', type=int, default=2000)
     parser.add_argument('--batch_size', type=int, default=16)
     parser.add_argument('--lr', type=float, default=1e-4)
@@ -72,9 +71,20 @@ def main():
             shuffle = False,
         )
 
-    print('[info msg] {} model is created\n'.format(args.model))
-    model = MultiLabelEfficientNet(args.model)
-    print('=' * 50)
+
+    model = None
+    
+    if(args.resume):
+        model = EfficientNet.from_name(args.model, in_channels=1, num_classes=26, dropout_rate=0.3)
+        model.load_state_dict(torch.load(args.resume))
+        print('[info msg] pre-trained weight is loaded !!\n')        
+        print(args.resume)
+        print('=' * 50)
+
+    else:
+        print('[info msg] {} model is created\n'.format(args.model))
+        model = EfficientNet.from_pretrained(args.model, in_channels=1, num_classes=26, dropout_rate=0.3)
+        print('=' * 50)
 
     optimizer = torch.optim.Adam(model.parameters(), args.lr)
     criterion = torch.nn.MultiLabelSoftMarginLoss()
@@ -98,20 +108,14 @@ def main():
     date_time = datetime.now().strftime("%m%d%H%M")
     SAVE_DIR = os.path.join('./save', date_time)
 
-    if(args.resume):
-        model.load_state_dict(torch.load(args.resume))
-        print('[info msg] pre-trained weight is loaded !!\n')        
-        print(args.resume)
-        print('=' * 50)
-
     print('[info msg] training start !!\n')
 
     startTime = datetime.now()
 
-    if args.device is 'cuda' and torch.cuda.device_count() > 1 :
+    if args.device == 'cuda' and torch.cuda.device_count() > 1 :
         model = torch.nn.DataParallel(model)
-    
-    model.to(device)
+ 
+    model.to(args.device)
 
     for epoch in range(args.epochs):        
         print('Epoch {}/{}'.format(epoch+1, args.epochs))
