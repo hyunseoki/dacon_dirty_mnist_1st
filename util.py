@@ -62,7 +62,7 @@ class DatasetMNIST(torch.utils.data.Dataset):
         # inverse_LowPass = np.fft.ifft2(LowPass)
         # image = np.abs(inverse_LowPass)
 
-        image = cv2.bilateralFilter(image, 9, 150, 150)
+        # image = cv2.bilateralFilter(image, 9, 150, 150)
         image = image.reshape([256, 256, 1])
 
         label = self.label_df.iloc[index,1:].values.astype('float')
@@ -120,7 +120,10 @@ class UnNormalize(object):
 def train(train_loader, model, loss_func, device, optimizer, scheduler=None):
     n = 0
     running_loss = 0.0
+    running_corrects = 0
+
     epoch_loss = 0.0
+    epoch_acc = 0.0
 
     # model.to(device)
     model.train()
@@ -137,7 +140,12 @@ def train(train_loader, model, loss_func, device, optimizer, scheduler=None):
 
             epoch_loss = running_loss / float(n)
 
-            log = 'loss - {:.6f}'.format(epoch_loss)
+            output = output > 0.5
+            running_corrects += (output == train_y).sum()
+            epoch_acc = running_corrects / train_y.size(1) / n
+
+            log = 'loss - {:.5f}, acc - {:.5f}'.format(epoch_loss, epoch_acc)
+            
             iterator.set_postfix_str(log)
 
             optimizer.zero_grad()
@@ -148,13 +156,16 @@ def train(train_loader, model, loss_func, device, optimizer, scheduler=None):
     if scheduler:
         scheduler.step(epoch_loss)
 
-    return epoch_loss
+    return epoch_loss, epoch_acc
 
 
 def validate(valid_loader, model, loss_func, device, scheduler=None):
     n = 0
-    running_loss = 0.0   
-    epoch_loss = 0.0 
+    running_loss = 0.0
+    running_corrects = 0
+
+    epoch_loss = 0.0
+    epoch_acc = 0.0
 
     # model.to(device)
     model.eval()
@@ -174,10 +185,15 @@ def validate(valid_loader, model, loss_func, device, scheduler=None):
 
             epoch_loss = running_loss / float(n)
 
-            log = 'loss - {:.6f}'.format(epoch_loss)
+            output = output > 0.5
+            running_corrects += (output == train_y).sum()
+            epoch_acc = running_corrects / train_y.size(1) / n
+
+            log = 'loss - {:.5f}, acc - {:.5f}'.format(epoch_loss, epoch_acc)
+
             iterator.set_postfix_str(log)
 
     if(scheduler):
         scheduler.step(epoch_loss)
 
-    return epoch_loss
+    return epoch_loss, epoch_acc
