@@ -86,6 +86,11 @@ def main():
         model = EfficientNet.from_pretrained(args.model, in_channels=1, num_classes=26, dropout_rate=0.3)
         print('=' * 50)
 
+    if args.device == 'cuda' and torch.cuda.device_count() > 1 :
+        model = torch.nn.DataParallel(model)
+ 
+    model.to(args.device)
+
     optimizer = torch.optim.Adam(model.parameters(), args.lr)
     criterion = torch.nn.MultiLabelSoftMarginLoss()
     scheduler = ReduceLROnPlateau(
@@ -96,74 +101,70 @@ def main():
         verbose=True
         )
 
-    train_error = []
-    valid_error = []
+    train_loss = []
+    train_acc = []
+    valid_loss = []
+    valid_acc = []
 
     best_loss = float("inf")
-    best_loss_pos = None
 
     patient = 0
-    patient_limit = args.patient
 
     date_time = datetime.now().strftime("%m%d%H%M")
     SAVE_DIR = os.path.join('./save', date_time)
 
     print('[info msg] training start !!\n')
-
     startTime = datetime.now()
-
-    if args.device == 'cuda' and torch.cuda.device_count() > 1 :
-        model = torch.nn.DataParallel(model)
- 
-    model.to(args.device)
-
     for epoch in range(args.epochs):        
         print('Epoch {}/{}'.format(epoch+1, args.epochs))
-        train_loss = util.train(
+        train_epoch_loss, train_epoch_acc = util.train(
             train_loader=train_data_loader,
             model=model,
             loss_func=criterion,
             device=args.device,
             optimizer=optimizer,
             )
-        train_error.append(train_loss)
+        train_loss.append(train_epoch_loss)
+        train_acc.append(train_epoch_acc)
 
-        valid_loss = util.validate(
+        valid_epoch_loss, valid_epoch_acc = util.validate(
             valid_loader=valid_data_loader,
             model=model,
             loss_func=criterion,
             device=args.device,
             scheduler=scheduler,
             )
-        valid_error.append(valid_loss)        
+        valid_loss.append(valid_epoch_loss)        
+        valid_acc.append(valid_epoch_acc)
 
-        is_best = best_loss > valid_loss
-
-        if is_best:
+        if best_loss > valid_epoch_loss:
             patient = 0
-            best_loss = valid_loss
-            
+            best_loss = valid_epoch_loss
+
             Path(SAVE_DIR).mkdir(parents=True, exist_ok=True)
             torch.save(model.state_dict(), os.path.join(SAVE_DIR, 'model_best.pth.tar'))
-            print('MODEL SAVED!')
+            print('MODEL IS SAVED TO {}!!!'.format(date_time))
             
         else:
             patient += 1
-            if patient > patient_limit - 1:
+            if patient > args.patient - 1:
                 print('=======' * 10)
                 print("[Info message] Early stopper is activated")
                 break
 
     elapsed_time = datetime.now() - startTime
 
-    train_error = np.array(train_error)
-    valid_error = np.array(valid_error)
-    best_loss_pos = np.argmin(valid_error)
+    train_loss = np.array(train_loss)
+    train_acc = np.array(train_acc)
+    valid_loss = np.array(valid_loss)
+    valid_acc = np.array(valid_acc)
+
+    best_loss_pos = np.argmin(valid_loss)
     
     print('=' * 50)
     print('[info msg] training is done\n')
     print("Time taken: {}".format(elapsed_time))
-    print("best loss is {} at epoch : {}".format(best_loss, best_loss_pos))
+    print("best loss is {} w/ acc {} at epoch : {}".format(best_loss, valid_acc[best_loss_pos], best_loss_pos))    
 
     print('=' * 50)
     print('[info msg] {} model weight and log is save to {}\n'.format(args.model, SAVE_DIR))
@@ -173,17 +174,22 @@ def main():
             f.write('{} : {}\n'.format(key, value))            
 
         f.write('\n')
-        f.write('total ecpochs : {}\n'.format(str(train_error.shape[0])))
+        f.write('total ecpochs : {}\n'.format(str(train_loss.shape[0])))
         f.write('time taken : {}\n'.format(str(elapsed_time)))
-        f.write('best_train_loss at {} epoch : {}\n'.format(np.argmin(train_error), np.min(train_error)))
-        f.write('best_valid_loss at {} epoch : {}\n'.format(np.argmin(valid_error), np.min(valid_error)))
+        f.write('best_train_loss {} w/ acc {} at epoch : {}\n'.format(np.min(train_loss), train_acc[np.argmin(train_loss)], np.argmin(train_loss)))
+        f.write('best_valid_loss {} w/ acc {} at epoch : {}\n'.format(np.min(valid_loss), valid_acc[np.argmin(valid_loss)], np.argmin(valid_loss)))
 
-    plt.plot(train_error, label='train loss')
-    plt.plot(valid_error, 'o', label='valid loss')
+    plt.subplot(1, 2, 1)
+    plt.plot(train_loss, label='train loss')
+    plt.plot(valid_loss, 'o', label='valid loss')
+    plt.axvline(x=best_loss_pos, color='r', linestyle='--', linewidth=1.5)
+    plt.legend()
+    plt.subplot(1, 2, 2)
+    plt.plot(train_acc, label='train acc')
+    plt.plot(valid_acc, 'o', label='valid acc')
     plt.axvline(x=best_loss_pos, color='r', linestyle='--', linewidth=1.5)
     plt.legend()
     plt.savefig(os.path.join(SAVE_DIR, 'history.png'))
-    plt.show()
 
 
 if __name__ == '__main__':
