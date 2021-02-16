@@ -132,7 +132,8 @@ def train(train_loader, model, loss_func, device, optimizer, scheduler=None):
         for train_x, train_y in iterator:
             train_x = train_x.float().to(device)
             train_y = train_y.long().to(device)
-            output = model(train_x)            
+            # output = torch.nn.sigmoid(model(train_x))
+            output = model(train_x)
             loss = loss_func(output, train_y)
             
             n += train_x.size(0)
@@ -176,6 +177,7 @@ def validate(valid_loader, model, loss_func, device, scheduler=None):
             train_y = train_y.long().to(device)
 
             with torch.no_grad():
+                # output = torch.nn.sigmoid(model(train_x))
                 output = model(train_x)
 
             loss = loss_func(output, train_y)
