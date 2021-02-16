@@ -55,13 +55,6 @@ class DatasetMNIST(torch.utils.data.Dataset):
         # so we need to convert the image to RGB color space.
         # image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
 
-        # original = np.fft.fft2(image)
-        # center = np.fft.fftshift(original)
-        # LowPassCenter = center * self.gaussianLP(20, image.shape)
-        # LowPass = np.fft.ifftshift(LowPassCenter)
-        # inverse_LowPass = np.fft.ifft2(LowPass)
-        # image = np.abs(inverse_LowPass)
-
         # image = cv2.bilateralFilter(image, 9, 150, 150)
         image = image.reshape([256, 256, 1])
 
@@ -83,7 +76,7 @@ mnist_transforms = {
             albumentations.RandomRotate90(),
             albumentations.VerticalFlip(),            
             albumentations.OneOf([
-                albumentations.GridDistortion(distort_limit=(-0.3, 0.3), border_mode=cv2.BORDER_CONSTANT),
+                albumentations.GridDistortion(distort_limit=(-0.3, 0.3), border_mode=cv2.BORDER_CONSTANT, p=1),
                 albumentations.ShiftScaleRotate(rotate_limit=15, border_mode=cv2.BORDER_CONSTANT, p=1),        
                 albumentations.ElasticTransform(alpha_affine=10, border_mode=cv2.BORDER_CONSTANT, p=1),
             ], p=1),    
@@ -126,14 +119,15 @@ def train(train_loader, model, loss_func, device, optimizer, scheduler=None):
     epoch_acc = 0.0
 
     # model.to(device)
-    model.train()
+    model.train()    
 
     with tqdm.tqdm(train_loader, total=len(train_loader), desc="Train", file=sys.stdout) as iterator:
         for train_x, train_y in iterator:
             train_x = train_x.float().to(device)
-            train_y = train_y.long().to(device)
-            # output = torch.nn.sigmoid(model(train_x))
+            train_y = train_y.float().to(device)
+            
             output = model(train_x)
+            
             loss = loss_func(output, train_y)
             
             n += train_x.size(0)
@@ -174,12 +168,11 @@ def validate(valid_loader, model, loss_func, device, scheduler=None):
     with tqdm.tqdm(valid_loader, total=len(valid_loader), desc="Valid", file=sys.stdout) as iterator:
         for train_x, train_y in iterator:
             train_x = train_x.float().to(device)
-            train_y = train_y.long().to(device)
+            train_y = train_y.float().to(device)
 
             with torch.no_grad():
-                # output = torch.nn.sigmoid(model(train_x))
                 output = model(train_x)
-
+            
             loss = loss_func(output, train_y)
 
             n += train_x.size(0)
