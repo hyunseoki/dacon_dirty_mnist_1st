@@ -62,7 +62,6 @@ if __name__ == '__main__':
 
     # model = MultiLabelEfficientNet('efficientnet-b0', in_channel=1)
     input = torch.rand(5, 3, 256, 256)
-    print(model(input).shape)
-
-    # model.available_model()
-
+    act = torch.nn.Sigmoid()
+    out = model(input)
+    print(act(out))
