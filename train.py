@@ -83,7 +83,7 @@ def main():
 
     else:
         print('[info msg] {} model is created\n'.format(args.model))
-        model = EfficientNet.from_pretrained(args.model, in_channels=1, num_classes=26, dropout_rate=0.3)
+        model = EfficientNet.from_pretrained(args.model, in_channels=1, num_classes=26, dropout_rate=0.3, advprop=True)
         print('=' * 50)
 
     if args.device == 'cuda' and torch.cuda.device_count() > 1 :
@@ -92,6 +92,7 @@ def main():
     model.to(args.device)
 
     optimizer = torch.optim.Adam(model.parameters(), args.lr)
+    # optimizer = torch.optim.SGD(model.parameters(), args.lr)
     criterion = torch.nn.MultiLabelSoftMarginLoss()
     scheduler = ReduceLROnPlateau(
         optimizer=optimizer,

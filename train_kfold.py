@@ -45,8 +45,7 @@ def main():
     util.seed_everything(777)
 
     data_set = pd.read_csv(args.label_path)
-    valid_idx_nb = int(np.round(len(data_set) * (1 - 0.8)))
-
+    valid_idx_nb = int(len(data_set) * (1 / 5))
 
     train_data = data_set.drop(data_set.index[valid_idx_nb * args.kfolder_idx:valid_idx_nb * (args.kfolder_idx + 1)])
     valid_data = data_set.iloc[valid_idx_nb * args.kfolder_idx:valid_idx_nb * (args.kfolder_idx + 1)]
