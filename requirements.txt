@@ -5,5 +5,5 @@ torchvision
 albumentations
 efficientnet_pytorch
 easydict
-jupyter
+jupyterlab
 tqdm
