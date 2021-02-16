@@ -5,6 +5,31 @@ import torch.nn as nn
 
 ## https://medium.com/analytics-vidhya/how-to-add-additional-layers-in-a-pre-trained-model-using-pytorch-5627002c75a5
 ## https://github.com/lukemelas/EfficientNet-PyTorch/blob/master/efficientnet_pytorch/model.py
+
+class CustomModel(nn.Module):
+    def __init__(self, ver='efficientnet-b8', in_channel=1, dropout=0.3, advprop=True, resume=None):
+        super(CustomModel, self).__init__()
+        if resume:
+            self.model = EfficientNet.from_name(ver, in_channels=in_channel, num_classes=26, dropout_rate=dropout)
+            self.model.load_state_dict(torch.load(resume))
+            print('[info msg] pre-trained weight is loaded !!\n')        
+            print(resume)
+            print('=' * 50)
+        else:
+            # self.modelmodel = EfficientNet.from_pretrained(args.model, in_channels=in_channel, num_classes=26, dropout_rate=dropout, advprop=advprop)
+            self.model = EfficientNet.from_name(ver, in_channels=in_channel, num_classes=26, dropout_rate=dropout)
+            print('[info msg] {} model is created\n'.format(ver))
+            print('=' * 50)
+
+        self.activation = torch.nn.Sigmoid()
+
+    def forward(self, x):
+        x = self.model(x)
+        x = self.activation(x)
+
+        return x
+
+
 class MultiLabelEfficientNet(nn.Module):
     def __init__(self, ver='efficientnet-b0', in_channel=3, dropout=0.3):
         super(MultiLabelEfficientNet, self).__init__()
@@ -58,10 +83,7 @@ class MultiLabelEfficientNet(nn.Module):
 
 
 if __name__ == '__main__':
-    model = EfficientNet.from_pretrained('efficientnet-b0', in_channels=3, num_classes=26, dropout_rate=0.3)
-
-    # model = MultiLabelEfficientNet('efficientnet-b0', in_channel=1)
-    input = torch.rand(5, 3, 256, 256)
-    act = torch.nn.Sigmoid()
+    model = CustomModel()
+    input = torch.rand(5, 1, 256, 256)
     out = model(input)
-    print(act(out))
+    print(out.shape)
