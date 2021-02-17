@@ -1,6 +1,6 @@
 1. dropout50 (2/17)
 2. lr 0.001로 해볼 것 (2/18)
-3. loss 바꿔서도 해봐야 함 torch.nn.BCEWithLogitsLoss 참고 (2/19)
+3. sigmoid + loss 바꿔서도 해봐야 함 torch.nn.BCEWithLogitsLoss(), torch.nn.MultiLabelSoftMarginLoss, torch.nn.BCELoss(),  https://discuss.pytorch.org/t/what-is-the-difference-between-bcewithlogitsloss-and-multilabelsoftmarginloss/14944/11 참고 (2/19)
 4. 새로운 augmentation 테스트 성능 잘 나오는지 확인해봐야 함 (2/22)
-5. scheduler 바꿔서도 해봐야 함
+5. scheduler 바꿔서도 해봐야 함 (warmup이 대새인 것 같다. Detectron2에서는 warmpup이 default값으로 셋팅되어 있음, https://pypi.org/project/pytorch-warmup/) (2/23)
 6. kfold ensemble (주말)
