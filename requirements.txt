@@ -7,3 +7,4 @@ efficientnet_pytorch
 easydict
 jupyterlab
 tqdm
+wandb
