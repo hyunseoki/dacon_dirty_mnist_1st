@@ -75,7 +75,7 @@ def main():
     model = None
     
     if(args.resume):
-        model = EfficientNet.from_name(args.model, in_channels=1, num_classes=26, dropout_rate=0.3)
+        model = EfficientNet.from_name(args.model, in_channels=1, num_classes=26, dropout_rate=0.5)
         model.load_state_dict(torch.load(args.resume))
         print('[info msg] pre-trained weight is loaded !!\n')        
         print(args.resume)
@@ -83,7 +83,7 @@ def main():
 
     else:
         print('[info msg] {} model is created\n'.format(args.model))
-        model = EfficientNet.from_pretrained(args.model, in_channels=1, num_classes=26, dropout_rate=0.3, advprop=True)
+        model = EfficientNet.from_pretrained(args.model, in_channels=1, num_classes=26, dropout_rate=0.5, advprop=True)
         print('=' * 50)
 
     if args.device == 'cuda' and torch.cuda.device_count() > 1 :
@@ -180,6 +180,7 @@ def main():
         f.write('best_train_loss {} w/ acc {} at epoch : {}\n'.format(np.min(train_loss), train_acc[np.argmin(train_loss)], np.argmin(train_loss)))
         f.write('best_valid_loss {} w/ acc {} at epoch : {}\n'.format(np.min(valid_loss), valid_acc[np.argmin(valid_loss)], np.argmin(valid_loss)))
 
+    plt.figure(figsize=(15,5))
     plt.subplot(1, 2, 1)
     plt.plot(train_loss, label='train loss')
     plt.plot(valid_loss, 'o', label='valid loss')
