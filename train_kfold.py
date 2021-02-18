@@ -36,7 +36,7 @@ def main():
         print(key, ":", value)
     print('=' * 50)
     
-    assert os.path.kfolder_idx <= 4
+    assert os.path.kfold_idx <= 4
     assert os.path.isdir(args.image_path), 'wrong path'
     assert os.path.isfile(args.label_path), 'wrong path'
     if (args.resume):
@@ -46,9 +46,13 @@ def main():
 
     data_set = pd.read_csv(args.label_path)
     valid_idx_nb = int(len(data_set) * (1 / 5))
-
-    train_data = data_set.drop(data_set.index[valid_idx_nb * args.kfolder_idx:valid_idx_nb * (args.kfolder_idx + 1)])
-    valid_data = data_set.iloc[valid_idx_nb * args.kfolder_idx:valid_idx_nb * (args.kfolder_idx + 1)]
+    valid_idx = np.arange(valid_idx_nb * args.kfolder_idx, valid_idx_nb * (args.kfolder_idx + 1))
+    print('[info msg] validation fold idx !!\n')        
+    print(valid_idx + '\n')
+    print('=' * 50)
+    
+    train_data = data_set.drop(valid_idx)
+    valid_data = data_set.iloc[valid_idx]
 
     train_set = util.DatasetMNIST(
         image_folder=args.image_path,
@@ -77,7 +81,7 @@ def main():
     model = None
     
     if(args.resume):
-        model = EfficientNet.from_name(args.model, in_channels=1, num_classes=26, dropout_rate=0.3)
+        model = EfficientNet.from_name(args.model, in_channels=1, num_classes=26, dropout_rate=0.5)
         model.load_state_dict(torch.load(args.resume))
         print('[info msg] pre-trained weight is loaded !!\n')        
         print(args.resume)
@@ -85,7 +89,7 @@ def main():
 
     else:
         print('[info msg] {} model is created\n'.format(args.model))
-        model = EfficientNet.from_pretrained(args.model, in_channels=1, num_classes=26, dropout_rate=0.3)
+        model = EfficientNet.from_pretrained(args.model, in_channels=1, num_classes=26, dropout_rate=0.5)
         print('=' * 50)
 
     if args.device == 'cuda' and torch.cuda.device_count() > 1 :
