@@ -21,8 +21,8 @@ def seed_everything(seed):
     # https://www.facebook.com/groups/PyTorchKR/permalink/1010080022465012/
     # https://hoya012.github.io/blog/reproducible_pytorch/
     
-    torch.backends.cudnn.deterministic = True
-    torch.backends.cudnn.benchmark = False 
+    torch.backends.cudnn.deterministic = True ## cuda.manual_seed 안에 포함된다고 함. 하지만, 찜찜해서 또 넣음
+    torch.backends.cudnn.benchmark = False
 
 
 class DatasetMNIST(torch.utils.data.Dataset):
@@ -30,18 +30,6 @@ class DatasetMNIST(torch.utils.data.Dataset):
         self.image_folder = image_folder   
         self.label_df = label_df
         self.transforms = transforms
-
-    def distance(self, point1,point2):
-        return np.sqrt((point1[0]-point2[0])**2 + (point1[1]-point2[1])**2)
-
-    def gaussianLP(self, D0, imgShape):
-        base = np.zeros(imgShape[:2])
-        rows, cols = imgShape[:2]
-        center = (rows/2,cols/2)
-        for x in range(cols):
-            for y in range(rows):
-                base[y,x] = np.exp(((-self.distance((y,x),center)**2)/(2*(D0**2))))
-        return base
 
     def __len__(self):
         return len(self.label_df)
@@ -55,7 +43,10 @@ class DatasetMNIST(torch.utils.data.Dataset):
         # so we need to convert the image to RGB color space.
         # image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
 
-        # image = cv2.bilateralFilter(image, 9, 150, 150)
+        # image[image<250] = 0 #filter1
+        # image = cv2.filter2D(image, -1, np.ones((3,3), np.float32)/(3*3)) # 2filter1
+        # image= cv2.medianBlur(image, 3) # 2filter1
+
         image = image.reshape([256, 256, 1])
 
         label = self.label_df.iloc[index,1:].values.astype('float')
@@ -74,7 +65,6 @@ mnist_transforms_value ={
 mnist_transforms = {
     'train' : albumentations.Compose([
             albumentations.RandomRotate90(),
-            albumentations.VerticalFlip(),            
             albumentations.OneOf([
                 albumentations.GridDistortion(distort_limit=(-0.3, 0.3), border_mode=cv2.BORDER_CONSTANT, p=1),
                 albumentations.ShiftScaleRotate(rotate_limit=15, border_mode=cv2.BORDER_CONSTANT, p=1),        
