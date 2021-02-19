@@ -9,6 +9,8 @@ import torch
 from torch.optim.lr_scheduler import ReduceLROnPlateau
 import util
 from efficientnet_pytorch import EfficientNet
+import wandb
+
 
 def main():
     device = "cuda:0" if torch.cuda.is_available() else "cpu"
@@ -18,10 +20,10 @@ def main():
     parser.add_argument('--label_path', type=str, default="./data/dirty_mnist_2nd_answer.csv")
     parser.add_argument('--dataset_ratio', type=float, default=0.7)
 
-    parser.add_argument('--model', type=str, default='efficientnet-b7')
+    parser.add_argument('--model', type=str, default='efficientnet-b8')
     parser.add_argument('--epochs', type=int, default=2000)
     parser.add_argument('--batch_size', type=int, default=16)
-    parser.add_argument('--lr', type=float, default=1e-4)
+    parser.add_argument('--lr', type=float, default=1e-3)
     parser.add_argument('--patient', type=int, default=8)
 
     parser.add_argument('--device', type=str, default=device)
@@ -71,7 +73,6 @@ def main():
             shuffle = False,
         )
 
-
     model = None
     
     if(args.resume):
@@ -89,6 +90,13 @@ def main():
     if args.device == 'cuda' and torch.cuda.device_count() > 1 :
         model = torch.nn.DataParallel(model)
  
+    ####### Wandb #######
+    wandb.init()
+    wandb.run.name = args.comments
+    wandb.config.update(args)
+    wandb.watch(model)
+    ####################
+
     model.to(args.device)
 
     optimizer = torch.optim.Adam(model.parameters(), args.lr)
@@ -137,6 +145,13 @@ def main():
             )
         valid_loss.append(valid_epoch_loss)        
         valid_acc.append(valid_epoch_acc)
+
+        wandb.log({
+            "Train Acc": train_epoch_acc,
+            "Valid Acc": valid_epoch_acc,
+            "Train Loss": train_epoch_loss,
+            "Valid Loss": valid_epoch_loss,
+            })
 
         if best_loss > valid_epoch_loss:
             patient = 0
