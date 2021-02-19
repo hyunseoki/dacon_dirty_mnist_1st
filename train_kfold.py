@@ -9,6 +9,8 @@ import torch
 from torch.optim.lr_scheduler import ReduceLROnPlateau
 import util
 from efficientnet_pytorch import EfficientNet
+import wandb
+
 
 def main():
     device = "cuda:0" if torch.cuda.is_available() else "cpu"
@@ -18,10 +20,10 @@ def main():
     parser.add_argument('--label_path', type=str, default="./data/dirty_mnist_2nd_answer.csv")
     parser.add_argument('--kfold_idx', type=int, default=0)
 
-    parser.add_argument('--model', type=str, default='efficientnet-b7')
+    parser.add_argument('--model', type=str, default='efficientnet-b8')
     parser.add_argument('--epochs', type=int, default=2000)
     parser.add_argument('--batch_size', type=int, default=16)
-    parser.add_argument('--lr', type=float, default=1e-4)
+    parser.add_argument('--lr', type=float, default=1e-3)
     parser.add_argument('--patient', type=int, default=8)
 
     parser.add_argument('--device', type=str, default=device)
@@ -36,19 +38,19 @@ def main():
         print(key, ":", value)
     print('=' * 50)
     
-    assert os.path.kfold_idx <= 4
     assert os.path.isdir(args.image_path), 'wrong path'
     assert os.path.isfile(args.label_path), 'wrong path'
     if (args.resume):
         assert os.path.isfile(args.resume), 'wrong path'
+    assert args.kfold_idx < 4
 
     util.seed_everything(777)
 
     data_set = pd.read_csv(args.label_path)
     valid_idx_nb = int(len(data_set) * (1 / 5))
-    valid_idx = np.arange(valid_idx_nb * args.kfolder_idx, valid_idx_nb * (args.kfolder_idx + 1))
+    valid_idx = np.arange(valid_idx_nb * args.kfold_idx, valid_idx_nb * (args.kfold_idx + 1))
     print('[info msg] validation fold idx !!\n')        
-    print(valid_idx + '\n')
+    print(valid_idx)
     print('=' * 50)
     
     train_data = data_set.drop(valid_idx)
@@ -89,12 +91,18 @@ def main():
 
     else:
         print('[info msg] {} model is created\n'.format(args.model))
-        model = EfficientNet.from_pretrained(args.model, in_channels=1, num_classes=26, dropout_rate=0.5)
+        model = EfficientNet.from_pretrained(args.model, in_channels=1, num_classes=26, dropout_rate=0.5, advprop=True)
         print('=' * 50)
 
     if args.device == 'cuda' and torch.cuda.device_count() > 1 :
         model = torch.nn.DataParallel(model)
  
+     ####### Wandb #######
+    wandb.init()
+    wandb.run.name = args.comments
+    wandb.config.update(args)
+    wandb.watch(model)
+    ####################
     model.to(args.device)
 
     optimizer = torch.optim.Adam(model.parameters(), args.lr)
@@ -143,6 +151,13 @@ def main():
         valid_loss.append(valid_epoch_loss)        
         valid_acc.append(valid_epoch_acc)
 
+        wandb.log({
+            "Train Acc": train_epoch_acc,
+            "Valid Acc": valid_epoch_acc,
+            "Train Loss": train_epoch_loss,
+            "Valid Loss": valid_epoch_loss,
+            })
+
         if best_loss > valid_epoch_loss:
             patient = 0
             best_loss = valid_epoch_loss
@@ -185,6 +200,7 @@ def main():
         f.write('best_train_loss {} w/ acc {} at epoch : {}\n'.format(np.min(train_loss), train_acc[np.argmin(train_loss)], np.argmin(train_loss)))
         f.write('best_valid_loss {} w/ acc {} at epoch : {}\n'.format(np.min(valid_loss), valid_acc[np.argmin(valid_loss)], np.argmin(valid_loss)))
 
+    plt.figure(figsize=(15,5))
     plt.subplot(1, 2, 1)
     plt.plot(train_loss, label='train loss')
     plt.plot(valid_loss, 'o', label='valid loss')
