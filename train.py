@@ -90,7 +90,7 @@ def main():
     if args.device == 'cuda' and torch.cuda.device_count() > 1 :
         model = torch.nn.DataParallel(model)
  
-    ####### Wandb #######
+    ####### Wandb ######
     wandb.init()
     wandb.run.name = args.comments
     wandb.config.update(args)
@@ -119,7 +119,7 @@ def main():
 
     patient = 0
 
-    date_time = datetime.now().strftime("%m%d%H%M")
+    date_time = datetime.now().strftime("%m%d%H%M%S")
     SAVE_DIR = os.path.join('./save', date_time)
 
     print('[info msg] training start !!\n')

@@ -42,7 +42,7 @@ def main():
     assert os.path.isfile(args.label_path), 'wrong path'
     if (args.resume):
         assert os.path.isfile(args.resume), 'wrong path'
-    assert args.kfold_idx < 4
+    assert args.kfold_idx < 5
 
     util.seed_everything(777)
 
@@ -97,7 +97,7 @@ def main():
     if args.device == 'cuda' and torch.cuda.device_count() > 1 :
         model = torch.nn.DataParallel(model)
  
-     ####### Wandb #######
+    ####### Wandb ######
     wandb.init()
     wandb.run.name = args.comments
     wandb.config.update(args)
@@ -124,7 +124,7 @@ def main():
 
     patient = 0
 
-    date_time = datetime.now().strftime("%m%d%H%M")
+    date_time = datetime.now().strftime("%m%d%H%M%S")
     SAVE_DIR = os.path.join('./save', date_time)
 
     print('[info msg] training start !!\n')
