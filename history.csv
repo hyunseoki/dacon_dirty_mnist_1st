@@ -16,4 +16,8 @@ fn," model"," batch"," final_epochs"," time_taken","  valid_loss","train_acc","v
 2181040,"b8","16","26","21:15:02.588803","0.3010091833114624","0.9485539197921753","0.8850359320640564",,imagenet+augmentation+moonfilter2
 2181050,"b8","16","37","1 day, 0:46:08.777493","0.1778479363600413","0.9345934391021729","0.9284846186637878",0.86916,imagenet+augmentation+dropoout50+lr0.001
 fold3.csv,"b8","16","69","2 days, 12:10:43.748043","0.13232466924190522","0.9531336426734924","0.949930727481842",0.8774,imagenet+augmentation+dropoout50+lr0.001
-fold3+tta,"","","","","","","",0.8841538462	,imagenet+augmentation+dropoout50+lr0.001+tta
+fold3+tta,"","","","","","","",0.8841538462	,imagenet+augmentation+dropoout50+lr0.001+tta(rot)
+fold3_tta_add_scale,"","","","","","","",0.8214153846	,imagenet+augmentation+dropoout50+lr0.001+tta(rot+scale)
+02241019,"","","","","","","",0.8878,imagenet+augmentation+dropoout50+lr0.001+tta(rot)+hard vote
+02241139,"","","","","","","",0.8889230769,imagenet+augmentation+dropoout50+lr0.001+tta(rot)+soft vote
+02241733,"","","","","","","",0.8542,imagenet+augmentation+dropoout50+lr0.001+tta(rot+scale)+soft vote
