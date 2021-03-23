@@ -21,3 +21,4 @@ fold3_tta_add_scale,"","","","","","","",0.8214153846	,imagenet+augmentation+dro
 02241019,"","","","","","","",0.8878,imagenet+augmentation+dropoout50+lr0.001+tta(rot)+hard vote
 02241139,"","","","","","","",0.8889230769,imagenet+augmentation+dropoout50+lr0.001+tta(rot)+soft vote
 02241733,"","","","","","","",0.8542,imagenet+augmentation+dropoout50+lr0.001+tta(rot+scale)+soft vote
+02250938,"(fold 다 완성)","","","","","","",0.8901,imagenet+augmentation+dropoout50+lr0.001+tta(rot)+soft vote

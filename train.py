@@ -18,7 +18,7 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--image_path', type=str, default="./data/dirty_mnist_2nd/")
     parser.add_argument('--label_path', type=str, default="./data/dirty_mnist_2nd_answer.csv")
-    parser.add_argument('--dataset_ratio', type=float, default=0.7)
+    parser.add_argument('--kfold_idx', type=int, default=0)
 
     parser.add_argument('--model', type=str, default='efficientnet-b8')
     parser.add_argument('--epochs', type=int, default=2000)
@@ -42,35 +42,42 @@ def main():
     assert os.path.isfile(args.label_path), 'wrong path'
     if (args.resume):
         assert os.path.isfile(args.resume), 'wrong path'
+    assert args.kfold_idx < 5
 
     util.seed_everything(777)
 
     data_set = pd.read_csv(args.label_path)
-    train_set_nb = int(len(data_set) * args.dataset_ratio)
-    # valid_set_nb = len(data_set) - train_set_nb
+    valid_idx_nb = int(len(data_set) * (1 / 5))
+    valid_idx = np.arange(valid_idx_nb * args.kfold_idx, valid_idx_nb * (args.kfold_idx + 1))
+    print('[info msg] validation fold idx !!\n')        
+    print(valid_idx)
+    print('=' * 50)
+    
+    train_data = data_set.drop(valid_idx)
+    valid_data = data_set.iloc[valid_idx]
 
     train_set = util.DatasetMNIST(
         image_folder=args.image_path,
-        label_df=data_set[:train_set_nb],
-        transforms=util.mnist_transforms['train']
+        label_df=train_data,
+        transforms=util.mnist_transforms['new_train']
     )
     
     valid_set = util.DatasetMNIST(
         image_folder=args.image_path,
-        label_df=data_set[train_set_nb:],
+        label_df=valid_data,
         transforms=util.mnist_transforms['valid']
     )
 
     train_data_loader = torch.utils.data.DataLoader(
             train_set,
-            batch_size = args.batch_size,
-            shuffle = True,
+            batch_size=args.batch_size,
+            shuffle=True,
         )
 
     valid_data_loader = torch.utils.data.DataLoader(
             valid_set,
-            batch_size = args.batch_size,
-            shuffle = False,
+            batch_size=args.batch_size,
+            shuffle=False,
         )
 
     model = None
@@ -91,16 +98,14 @@ def main():
         model = torch.nn.DataParallel(model)
  
     ####### Wandb ######
-    wandb.init()
+    wandb.init(project='dacon_dirty_mnist_new_aug')
     wandb.run.name = args.comments
     wandb.config.update(args)
     wandb.watch(model)
     ####################
-
     model.to(args.device)
 
     optimizer = torch.optim.Adam(model.parameters(), args.lr)
-    # optimizer = torch.optim.SGD(model.parameters(), args.lr)
     criterion = torch.nn.MultiLabelSoftMarginLoss()
     scheduler = ReduceLROnPlateau(
         optimizer=optimizer,
